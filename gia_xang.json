@@ -1,15 +1,5 @@
 {
-  "nguon": "Petrolimex",
-  "cap_nhat_luc": "2026-04-06 20:03:45",
-  "gia_ban": {
-    "Xăng RON 95-V": {
-      "vung_1": "24.370",
-      "vung_2": "24.850"
-    },
-    "Xăng RON 95-III": {
-      "vung_1": "23.910",
-      "vung_2": "24.380"
-    },
-    ...
-  }
+    "nguon": "Petrolimex",
+    "cap_nhat_luc": "2026-04-06 21:27:46",
+    "gia_ban": {}
 }
