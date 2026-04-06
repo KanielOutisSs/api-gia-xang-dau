@@ -1,77 +1,83 @@
 import requests
 from bs4 import BeautifulSoup
-import xml.etree.ElementTree as ET
 import json
 from datetime import datetime
 import pytz
 
-def get_market_data():
-    # --- 1. LẤY GIÁ XĂNG DẦU (PETROLIMEX) ---
-    petro_url = 'https://www.petrolimex.com.vn/'
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    xang_dau_results = {}
+def get_petrolimex_prices():
+    # URL trang chủ Petrolimex
+    url = 'https://www.petrolimex.com.vn/'
     
+    # Headers giả lập trình duyệt để tránh bị chặn
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+
     try:
-        res_petro = requests.get(petro_url, headers=headers)
-        res_petro.raise_for_status()
-        soup = BeautifulSoup(res_petro.text, 'html.parser')
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
         
-        target_items = ["DO 0,05S-II", "Xăng RON 95-V", "Xăng RON 95-III", "DO 0,001S-V"]
+        # Phân tích HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Danh sách các mặt hàng bạn muốn lấy
+        target_items = [
+            "DO 0,05S-II", 
+            "Xăng RON 95-V", 
+            "Xăng RON 95-III", 
+            "DO 0,001S-V"
+        ]
+        
+        results = {}
+
+        # Tìm thẻ div chứa bảng giá theo đúng cấu trúc trong ảnh F12 của bạn
         price_container = soup.find('div', class_='header__pricePetrol')
         
         if price_container:
-            for row in price_container.find_all('tr'):
-                cols = row.find_all('td')
-                if len(cols) >= 3:
-                    name = cols[0].text.strip()
-                    if name in target_items:
-                        xang_dau_results[name] = {
-                            "vung_1": cols[1].text.strip(),
-                            "vung_2": cols[2].text.strip()
-                        }
-    except Exception as e:
-        print(f"Lỗi lấy giá xăng: {e}")
-
-    # --- 2. LẤY GIÁ VÀNG (BẢO TÍN MINH CHÂU) ---
-    btmc_url = 'http://api.btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v'
-    gia_vang_results = {}
-    
-    try:
-        res_btmc = requests.get(btmc_url)
-        res_btmc.raise_for_status()
-        # Đọc dữ liệu XML
-        root = ET.fromstring(res_btmc.content)
-        
-        # Tìm tất cả thẻ <Data>
-        for child in root.findall('Data'):
-            ten_vang = child.get('n_1')
+            # Lấy tất cả các hàng (tr) trong bảng
+            rows = price_container.find_all('tr')
             
-            # Lọc lấy những loại vàng bạn quan tâm (Ví dụ: Vàng Rồng Thăng Long và Vàng SJC)
-            if ten_vang and ('Vàng Rồng Thăng Long' in ten_vang or 'Vàng SJC' in ten_vang):
-                gia_vang_results[ten_vang.strip()] = {
-                    "mua_vao": child.get('pb_1'),
-                    "ban_ra": child.get('ps_1'),
-                    "cap_nhat_goc": child.get('d_1') # Thời gian cập nhật từ phía BTMC
-                }
-    except Exception as e:
-        print(f"Lỗi lấy giá vàng: {e}")
-
-    # --- 3. GỘP DỮ LIỆU VÀ LƯU RA FILE JSON ---
-    tz_VN = pytz.timezone('Asia/Ho_Chi_Minh')
-    datetime_VN = datetime.now(tz_VN)
-
-    final_data = {
-        "thoi_gian_dong_bo": datetime_VN.strftime('%Y-%m-%d %H:%M:%S'),
-        "xang_dau": xang_dau_results,
-        "gia_vang": gia_vang_results
-    }
-
-    # Lưu thành file market_data.json
-    with open('market_data.json', 'w', encoding='utf-8') as f:
-        json.dump(final_data, f, ensure_ascii=False, indent=4)
+            for row in rows:
+                cols = row.find_all('td')
+                
+                # Bỏ qua các hàng không có đủ dữ liệu (ví dụ hàng tiêu đề)
+                if len(cols) >= 3: 
+                    name = cols[0].text.strip()
+                    
+                    # Nếu tên nhiên liệu nằm trong danh sách yêu cầu thì lấy giá
+                    if name in target_items:
+                        # cols[1] là giá Vùng 1, cols[2] là giá Vùng 2
+                        price_vung1 = cols[1].text.strip()
+                        price_vung2 = cols[2].text.strip()
+                        
+                        results[name] = {
+                            "vung_1": price_vung1,
+                            "vung_2": price_vung2
+                        }
         
-    print("✅ Đã gộp và tạo file market_data.json thành công!")
-    print(json.dumps(final_data, ensure_ascii=False, indent=2))
+        if not results:
+            print("Cảnh báo: Không bóc tách được dữ liệu. Có thể web đã đổi cấu trúc!")
+
+        # Lấy thời gian hiện tại theo múi giờ Việt Nam
+        tz_VN = pytz.timezone('Asia/Ho_Chi_Minh')
+        datetime_VN = datetime.now(tz_VN)
+
+        # Đóng gói thành chuẩn JSON
+        data = {
+            "nguon": "Petrolimex",
+            "cap_nhat_luc": datetime_VN.strftime('%Y-%m-%d %H:%M:%S'),
+            "gia_ban": results
+        }
+
+        # Lưu ra file json
+        with open('gia_xang.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+            
+        print("✅ Bóc tách dữ liệu thành công!")
+        print(json.dumps(data, ensure_ascii=False, indent=2)) # In ra log để dễ kiểm tra
+
+    except Exception as e:
+        print(f"❌ Có lỗi xảy ra trong quá trình cào dữ liệu: {e}")
 
 if __name__ == "__main__":
-    get_market_data()
+    get_petrolimex_prices()
