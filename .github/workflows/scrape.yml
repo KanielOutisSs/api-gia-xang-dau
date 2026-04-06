@@ -1,0 +1,33 @@
+name: Tự động cào giá Xăng Dầu
+
+on:
+  schedule:
+    # Chạy vào phút thứ 0 của mỗi 3 giờ (ví dụ: 0:00, 3:00, 6:00...)
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # Cho phép bạn bấm nút chạy bằng tay để test
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tải mã nguồn về máy ảo
+        uses: actions/checkout@v3
+
+      - name: Cài đặt Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Cài đặt thư viện cần thiết
+        run: pip install requests beautifulsoup4 pytz
+
+      - name: Chạy file Scraper
+        run: python scraper.py
+
+      - name: Lưu file JSON lên GitHub (Commit & Push)
+        run: |
+          git config user.name "GitHub Action Bot"
+          git config user.email "action@github.com"
+          git add gia_xang.json
+          git commit -m "Cập nhật giá xăng dầu tự động" || echo "Không có dữ liệu mới để cập nhật"
+          git push
