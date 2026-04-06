@@ -28,6 +28,6 @@ jobs:
         run: |
           git config user.name "GitHub Action Bot"
           git config user.email "action@github.com"
-          git add market_data.json   # <--- ĐỔI TÊN FILE Ở ĐÂY
-          git commit -m "Cập nhật dữ liệu thị trường tự động" || echo "Không có dữ liệu mới"
+          git add gia_xang.json
+          git commit -m "Cập nhật giá xăng dầu tự động" || echo "Không có dữ liệu mới để cập nhật"
           git push
