@@ -3,35 +3,37 @@ from bs4 import BeautifulSoup
 import json
 from datetime import datetime
 import pytz
+import sys # Import thêm thư viện này để ép Action báo lỗi đỏ nếu thất bại
 
 def get_petrolimex_prices():
     url = 'https://www.petrolimex.com.vn/'
     
-    # Khởi chạy Playwright
     with sync_playwright() as p:
-        # Mở trình duyệt Chromium ẩn (headless=True)
         browser = p.chromium.launch(headless=True)
         
-        # Giả lập User-Agent của người dùng thật
-        page = browser.new_page(user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        # Thêm Viewport và User-Agent để ngụy trang giống người dùng thật hơn
+        context = browser.new_context(
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            viewport={'width': 1920, 'height': 1080}
+        )
+        page = context.new_page()
         
         try:
             print("Đang truy cập Petrolimex...")
-            page.goto(url, timeout=30000)
+            page.goto(url, timeout=60000)
             
-            # QUAN TRỌNG: Đợi tối đa 15 giây cho đến khi thẻ chứa bảng giá xuất hiện
-            # Điều này giúp vượt qua các màn hình loading hoặc check Cloudflare ban đầu
-            page.wait_for_selector('.header__pricePetrol1', timeout=15000)
+            # ĐÃ SỬA LỖI: Xóa số 1 ở cuối tên class
+            page.wait_for_selector('.header__pricePetrol', timeout=20000)
             print("Đã tải xong bảng giá, tiến hành bóc tách...")
             
-            # Lấy toàn bộ mã HTML sau khi JavaScript đã chạy xong
             html = page.content()
             soup = BeautifulSoup(html, 'html.parser')
             
             target_items = ["DO 0,05S-II", "Xăng RON 95-V", "Xăng RON 95-III", "DO 0,001S-V"]
             results = {}
 
-            price_container = soup.find('div', class_='header__pricePetrol1')
+            # ĐÃ SỬA LỖI: Xóa số 1 ở cuối tên class
+            price_container = soup.find('div', class_='header__pricePetrol')
             
             if price_container:
                 rows = price_container.find_all('tr')
@@ -45,7 +47,11 @@ def get_petrolimex_prices():
                                 "vung_2": cols[2].text.strip()
                             }
 
-            # Lưu dữ liệu
+            # Nếu mảng rỗng (cào xịt), ném ra lỗi để dừng chương trình
+            if not results:
+                raise ValueError("Không bóc tách được dữ liệu. Có thể web đã đổi cấu trúc!")
+
+            # Lưu dữ liệu nếu cào thành công
             tz_VN = pytz.timezone('Asia/Ho_Chi_Minh')
             datetime_VN = datetime.now(tz_VN)
 
@@ -63,6 +69,7 @@ def get_petrolimex_prices():
 
         except Exception as e:
             print(f"❌ Có lỗi xảy ra hoặc bị block: {e}")
+            sys.exit(1)  # Kích hoạt báo lỗi đỏ trên GitHub Actions
         finally:
             browser.close()
 
