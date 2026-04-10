@@ -19,10 +19,7 @@ jobs:
           python-version: '3.10'
 
       - name: Cài đặt thư viện cần thiết
-        run: pip install playwright beautifulsoup4 pytz
-
-      - name: Cài đặt trình duyệt cho Playwright
-        run: playwright install chromium
+        run: pip install requests beautifulsoup4 pytz
 
       - name: Chạy file Scraper
         run: python scraper.py
