@@ -12,17 +12,14 @@ jobs:
     steps:
       - name: Tải mã nguồn về máy ảo
         uses: actions/checkout@v4
-        
-      - name: Cài đặt thư viện cần thiết
-        run: pip install requests beautifulsoup4 pytz cloudscraper
-        
+
       - name: Cài đặt Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
       - name: Cài đặt thư viện cần thiết
-        run: pip install requests beautifulsoup4 pytz
+        run: pip install requests beautifulsoup4 pytz cloudscraper
 
       - name: Chạy file Scraper
         run: python scraper.py
