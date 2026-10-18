@@ -11,13 +11,13 @@ from bs4 import BeautifulSoup
 URL = "https://giaxanghomnay.com/"
 # Exactly two products requested; keep stable JSON keys across name variants.
 PRODUCT_PATTERNS = {
-    "Xăng E10 RON 95 Mức 5": r"^Xăng\\s+E10\\s+RON\\s*95\\s*(?:-?V|Mức\\s*5)$",
-    "DO 0,05S Mức 2": r"^(?:Dầu\\s+)?DO\\s+0[,.]05S\\s*(?:-?II|Mức\\s*2)$",
+    "Xăng E10 RON 95 Mức 5": r"^Xăng\s+E10\s+RON\s*95\s*(?:-?V|Mức\s*5)$",
+    "DO 0,05S Mức 2": r"^(?:Dầu\s+)?DO\s+0[,.]05S\s*(?:-?II|Mức\s*2)$",
 }
 
 
 def clean(value):
-    return re.sub(r"\\s+", " ", value.replace("\\xa0", " ").replace("–", "-").replace("—", "-")).strip()
+    return re.sub(r"\s+", " ", value.replace("\xa0", " ").replace("–", "-").replace("—", "-")).strip()
 
 
 def match_product(name):
