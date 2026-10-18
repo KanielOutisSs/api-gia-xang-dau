@@ -1,10 +1,14 @@
 {
     "nguon": "giaxanghomnay.com",
-    "cap_nhat_luc": "2026-10-18 13:11:13",
+    "cap_nhat_luc": "2026-10-18 20:47:24",
     "gia_ban": {
-        "Xăng E5 RON 92": {
-            "vung_1": "26,670",
-            "vung_2": "27,200"
+        "Xăng E10 RON 95 Mức 5": {
+            "vung_1": "27,520",
+            "vung_2": "28,070"
+        },
+        "DO 0,05S Mức 2": {
+            "vung_1": "28,800",
+            "vung_2": "29,370"
         }
     }
 }
