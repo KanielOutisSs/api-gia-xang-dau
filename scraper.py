@@ -9,23 +9,22 @@ from bs4 import BeautifulSoup
 
 
 URL = "https://giaxanghomnay.com/"
-# Match product names exactly after normalizing spaces/dashes.
-# Include the E10 RON 95 products currently shown by the website.
-PRODUCT_PATTERNS = (
-    r"^Xăng E5 RON 92(?:-II)?$",
-    r"^Xăng E10 RON 95-(?:III|V)$",
-    r"^Xăng RON 95-(?:III|V)$",
-    r"^(?:Dầu )?DO 0,05S-II$",
-    r"^(?:Dầu )?DO 0,001S-V$",
-)
+# Exactly two products requested; keep stable JSON keys across name variants.
+PRODUCT_PATTERNS = {
+    "Xăng E10 RON 95 Mức 5": r"^Xăng\\s+E10\\s+RON\\s*95\\s*(?:-?V|Mức\\s*5)$",
+    "DO 0,05S Mức 2": r"^(?:Dầu\\s+)?DO\\s+0[,.]05S\\s*(?:-?II|Mức\\s*2)$",
+}
 
 
 def clean(value):
-    return re.sub(r"\s+", " ", value.replace("\xa0", " ").replace("–", "-").replace("—", "-")).strip()
+    return re.sub(r"\\s+", " ", value.replace("\\xa0", " ").replace("–", "-").replace("—", "-")).strip()
 
 
-def is_target(name):
-    return any(re.fullmatch(pattern, name, flags=re.IGNORECASE) for pattern in PRODUCT_PATTERNS)
+def match_product(name):
+    for label, pattern in PRODUCT_PATTERNS.items():
+        if re.fullmatch(pattern, name, flags=re.IGNORECASE):
+            return label
+    return None
 
 
 def extract_prices(html):
@@ -50,7 +49,8 @@ def extract_prices(html):
                 continue
             name = clean(cols[0].get_text(" ", strip=True))
             observed.append(name)
-            if not is_target(name):
+            product = match_product(name)
+            if product is None:
                 continue
 
             region1 = clean(cols[-2].get_text(" ", strip=True))
@@ -58,16 +58,18 @@ def extract_prices(html):
             if not re.fullmatch(r"[\d.,]+", region1) or not re.fullmatch(r"[\d.,]+", region2):
                 print(f"Bỏ qua giá không hợp lệ: {name}: {region1} / {region2}")
                 continue
-            results[name] = {"vung_1": region1, "vung_2": region2}
+            results[product] = {"vung_1": region1, "vung_2": region2}
 
         print("Các mặt hàng trong bảng Petrolimex:", observed)
-        if results:
+        missing = set(PRODUCT_PATTERNS) - set(results)
+        if not missing:
             return results
+        print(f"Chưa tìm thấy đủ mặt hàng: {sorted(missing)}")
 
     # Help diagnose layout changes without writing an empty JSON file.
     raise ValueError(
-        "Không đọc được bảng giá Petrolimex với cột Giá vùng 1 và Giá vùng 2. "
-        "Có thể website thay đổi cấu trúc hoặc trả về HTML khác trên GitHub Actions."
+        "Không lấy đủ 2 mặt hàng E10 RON 95 Mức 5 và DO 0,05S Mức 2 "
+        "trong bảng giá Petrolimex (Vùng 1/Vùng 2); giữ nguyên JSON cũ."
     )
 
 
